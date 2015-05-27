@@ -1,0 +1,72 @@
+---
+title: "Titanic case using R"
+output: html_document
+---
+
+Adapted from https://github.com/wehrley/wehrley.github.io/blob/master/SOUPTONUTS
+
+Some setup:
+
+```{r}
+
+setwd("/github/kaggle-fiddling/titanic/R")
+
+library(ggplot2)
+
+```
+
+Let us first define a generic function for reading CSV files which handles data types and missing values
+
+```{r, message=F, warning=F}
+
+# file.path: path of CSV file to be read
+# column.types:  type of each column
+# missing.types: string corresponding to missing data
+readCsvData <- function(file.path, column.types, missing.types) {
+  read.csv(file.path, colClasses=column.types, na.strings=missing.types)
+}
+
+missing.types <- c("NA", "")
+train.column.types <- c('integer',   # PassengerId
+                        'factor',    # Survived 
+                        'factor',    # Pclass
+                        'character', # Name
+                        'factor',    # Sex
+                        'numeric',   # Age
+                        'integer',   # SibSp
+                        'integer',   # Parch
+                        'character', # Ticket
+                        'numeric',   # Fare
+                        'character', # Cabin
+                        'factor'     # Embarked
+)
+train <- readCsvData("../data/train.csv", train.column.types, missing.types)
+
+## map missing data byattribute
+# install.packages("Amelia")
+require(Amelia)
+missmap(train, main="Titanic Training Data - Missings Map", 
+        col=c("yellow", "black"), legend=FALSE)
+```
+
+Let's load test data:
+
+```{r}
+test.column.types <- train.column.types[-2]     # no Survived column in test.csv
+test <- readCsvData("../data/test.csv", test.column.types, missing.types)
+```
+
+Do the same data are missing in test data ?
+
+```{r}
+missmap(test, main="Titanic test data - Missings Map", 
+        col=c("yellow", "black"), legend=FALSE)
+```
+
+With a few exceptions (Fare, Embarked), yes.
+        
+General results about passenger survival:
+
+```{r}        
+barplot(100*table(train$Survived)/sum(table(train$Survived)), main="Passenger survival %", names.arg=c("died", "survived"))        
+```
