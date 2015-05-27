@@ -1,2 +1,2 @@
 # kaggle-fiddling
-A repo for fiddling with Kaggle 
+A repo for fiddling with Kaggle.
