@@ -5,7 +5,8 @@ output: html_document
 
 Adapted from https://github.com/wehrley/wehrley.github.io/blob/master/SOUPTONUTS
 
-Some setup:
+Some setup
+----------
 
 ```{r}
 
@@ -40,8 +41,19 @@ train.column.types <- c('integer',   # PassengerId
                         'character', # Cabin
                         'factor'     # Embarked
 )
-train <- readCsvData("../data/train.csv", train.column.types, missing.types)
+```
 
+Training data loading
+---------------------
+
+```{r}
+train <- readCsvData("../data/train.csv", train.column.types, missing.types)
+```
+
+Display missing training data with Amelia
+-----------------------------------------
+
+```{r, message=F, warning=F}
 ## map missing data byattribute
 # install.packages("Amelia")
 require(Amelia)
@@ -49,7 +61,8 @@ missmap(train, main="Titanic Training Data - Missings Map",
         col=c("yellow", "black"), legend=FALSE)
 ```
 
-Let's load test data:
+Test data loading
+-----------------
 
 ```{r}
 test.column.types <- train.column.types[-2]     # no Survived column in test.csv
@@ -57,6 +70,7 @@ test <- readCsvData("../data/test.csv", test.column.types, missing.types)
 ```
 
 Do the same data are missing in test data ?
+-------------------------------------------
 
 ```{r}
 missmap(test, main="Titanic test data - Missings Map", 
@@ -65,8 +79,100 @@ missmap(test, main="Titanic test data - Missings Map",
 
 With a few exceptions (Fare, Embarked), yes.
         
-General results about passenger survival:
+General results about passenger survival
+----------------------------------------
 
 ```{r}        
 barplot(100*table(train$Survived)/sum(table(train$Survived)), main="Passenger survival %", names.arg=c("died", "survived"))        
 ```
+
+Impact of sex
+-------------
+
+Using SQLDF library for querying data (http://www.r-bloggers.com/manipulating-data-frames-using-sqldf-a-brief-overview/ ):
+
+```{r, message=F, warning=F}     
+library(sqldf)
+
+surv_sex <- sqldf("select Sex, Survived, count(*) as count from train group by Sex, Survived")
+print(surv_sex)
+```    
+
+Percentages are earsier to read:
+
+```{r}     
+transform(surv_sex, percent = signif(ave(count, Sex, FUN = prop.table), digits=2))
+``` 
+
+Many more women survived than men in percentage. Why ?
+Women and children first.
+See: 
+- http://www.anesi.com/titanic.htm
+- http://www.livescience.com/21951-women-children-first-shipwreck-myth.html
+
+Plotting:
+
+```{r}
+mosaicplot(train$Sex ~ train$Survived, main="Passenger Survival by Sex")
+```
+
+For more sexy plotting options, see https://www.kaggle.com/benhamner/titanic/exploratory-analysis-in-r lines 12-14
+
+Another way:
+
+```{r}
+surv_sex2 <- table(train$Survived, train$Sex)
+print(surv_sex2)
+barplot(surv_sex2, xlab = "Sex", ylab = "Number of People", main = "survived and deceased between male and female")
+```
+
+1st Model based solely on gender
+--------------------------------
+
+```{r}
+test$Survived <- 0
+test$Survived[test$Sex == 'female'] <- 1
+```
+
+From http://trevorstephens.com/post/72920580937/titanic-getting-started-with-r-part-2-the, **this model gets 76.555 % predictions right**.
+
+Submission to Kaggle
+--------------------
+
+```{r}
+submit <- data.frame(PassengerId = test$PassengerId, Survived = test$Survived)
+write.csv(submit, file = "genderModel.csv", row.names = FALSE)
+```
+
+
+Impact of Age
+-------------
+
+```{r}
+summary(train$Age)
+```
+
+There are 177 unknown values. What to do with them ? remove the corresponding observations ? infer the age to be the mean value of passengers ? predict the age ?
+
+Let us focus on passengers with a known age
+
+```{r}
+with_age <- subset(train, train$Age != "NA")
+plot(density(with_age$Age))
+
+```
+
+How age is affecting survival ?
+
+```{r}
+age_count<-sqldf("SELECT round(Age) as rAge, Survived, count(*) AS count FROM with_age GROUP BY age, Survived")
+ggplot(data=age_count, aes(x=rAge,y=count,fill=Survived))+geom_bar(stat="identity")
+```
+
+There seems to be a change around 15 years. Children with this age or younger survive more than adults. Remember: Women and children first.
+
+From 64 years survival also seems difficult ...
+
+This suggests to build three age classes [0;15], [16;63] and [64; inf
+
+Since age is important, missing data are a big problem here ...
