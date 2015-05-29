@@ -372,7 +372,8 @@ train$SurvivedProba &lt;- predict(model, newdata=train, type = &quot;response&qu
 train$OK &lt;- ifelse(ifelse(train$SurvivedProba &gt; 0.5, 1, 0) == train$Survived, 1, 0)
 sum(train$OK) / nrow(train)</code></pre>
 <pre><code>## [1] 0.7890011</code></pre>
-<p>It is only slightly better. This is a bit weird.</p>
+<p>It is only slightly better.</p>
+<p>This is a bit weird.</p>
 </div>
 
 

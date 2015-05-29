@@ -306,6 +306,7 @@ sum(train$OK) / nrow(train)
 ```
 
 It is only slightly better.
+
 This is a bit weird.
 
 
